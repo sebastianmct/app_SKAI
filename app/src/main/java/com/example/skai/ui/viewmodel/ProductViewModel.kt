@@ -3,9 +3,9 @@ package com.example.skai.ui.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.skai.DataManager
 import com.example.skai.data.model.Product
 import com.example.skai.data.repository.ExternalProductRepository
+import com.example.skai.data.repository.ProductRepository
 import com.example.skai.utils.NotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ProductViewModel @Inject constructor(
+    private val productRepository: ProductRepository,
     private val externalProductRepository: ExternalProductRepository
 ) : ViewModel() {
 
@@ -48,9 +49,10 @@ class ProductViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _products.value = DataManager.getAllProducts()
+                val productsList = productRepository.getAllActiveProducts()
+                _products.value = productsList
             } catch (e: Exception) {
-
+                // Error handling
             } finally {
                 _isLoading.value = false
             }
@@ -62,14 +64,8 @@ class ProductViewModel @Inject constructor(
             try {
                 val externalProducts = externalProductRepository.getAllExternalProducts()
                 _externalProducts.value = externalProducts
-                
-
-                if (externalProducts.isNotEmpty()) {
-                    val firstProduct = externalProducts.first()
-
-                }
             } catch (e: Exception) {
-
+                // Error handling
             }
         }
     }
@@ -82,13 +78,12 @@ class ProductViewModel @Inject constructor(
                 _selectedCategory,
                 _searchQuery
             ) { products, externalProducts, category, query ->
-
                 val allProducts = products + externalProducts
                 allProducts.filter { product ->
                     val matchesCategory = category == null || product.category == category
                     val matchesQuery = query.isEmpty() || 
                         product.name.contains(query, ignoreCase = true) ||
-                        product.description.contains(query, ignoreCase = true)
+                        product.description?.contains(query, ignoreCase = true) == true
                     matchesCategory && matchesQuery
                 }
             }.collect { filtered ->
@@ -106,30 +101,54 @@ class ProductViewModel @Inject constructor(
     }
 
     fun getCategories(): List<String> {
-        return DataManager.getCategories()
+        val allProducts = _products.value + _externalProducts.value
+        return allProducts.mapNotNull { it.category }.distinct()
     }
 
     suspend fun getProductById(productId: String): Product? {
-        return DataManager.getProductById(productId)
+        return productRepository.getProductById(productId)
     }
 
     suspend fun addProduct(product: Product, context: Context? = null) {
-        DataManager.addProduct(product)
-        loadProducts()
-        
-
-        context?.let {
-            NotificationService.notifyNewProduct(it, product.name)
+        viewModelScope.launch {
+            try {
+                val createdProduct = productRepository.insertProduct(product)
+                if (createdProduct != null) {
+                    loadProducts()
+                    
+                    context?.let {
+                        NotificationService.notifyNewProduct(it, createdProduct.name)
+                    }
+                }
+            } catch (e: Exception) {
+                // Error handling
+            }
         }
     }
 
     suspend fun updateProduct(product: Product) {
-        DataManager.updateProduct(product)
-        loadProducts()
+        viewModelScope.launch {
+            try {
+                val updatedProduct = productRepository.updateProduct(product)
+                if (updatedProduct != null) {
+                    loadProducts()
+                }
+            } catch (e: Exception) {
+                // Error handling
+            }
+        }
     }
 
     suspend fun deleteProduct(product: Product) {
-        DataManager.deleteProduct(product)
-        loadProducts()
+        viewModelScope.launch {
+            try {
+                val success = productRepository.deleteProduct(product)
+                if (success) {
+                    loadProducts()
+                }
+            } catch (e: Exception) {
+                // Error handling
+            }
+        }
     }
 }

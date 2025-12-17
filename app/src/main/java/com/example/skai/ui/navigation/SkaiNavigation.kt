@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.skai.ui.screens.auth.LoginScreen
 import com.example.skai.ui.screens.auth.RegisterScreen
 import com.example.skai.ui.screens.catalog.CatalogScreen
@@ -14,11 +15,15 @@ import com.example.skai.ui.screens.admin.AdminScreen
 import com.example.skai.ui.screens.product.ProductDetailScreen
 import com.example.skai.ui.screens.checkout.CheckoutScreen
 import com.example.skai.ui.screens.profile.ProfileScreen
+import com.example.skai.ui.viewmodel.AuthViewModel
+import com.example.skai.ui.viewmodel.CartViewModel
 
 @Composable
 fun SkaiNavigation(
     navController: NavHostController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    authViewModel: AuthViewModel = hiltViewModel(),
+    cartViewModel: CartViewModel = hiltViewModel()
 ) {
     NavHost(
         navController = navController,
@@ -34,7 +39,8 @@ fun SkaiNavigation(
                     navController.navigate("catalog") {
                         popUpTo("login") { inclusive = true }
                     }
-                }
+                },
+                viewModel = authViewModel
             )
         }
         
@@ -47,7 +53,8 @@ fun SkaiNavigation(
                     navController.navigate("catalog") {
                         popUpTo("register") { inclusive = true }
                     }
-                }
+                },
+                viewModel = authViewModel
             )
         }
         
@@ -72,7 +79,9 @@ fun SkaiNavigation(
                     navController.navigate("login") {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                authViewModel = authViewModel,
+                cartViewModel = cartViewModel
             )
         }
         
@@ -80,7 +89,8 @@ fun SkaiNavigation(
             ProfileScreen(
                 onNavigateBack = {
                     navController.popBackStack()
-                }
+                },
+                authViewModel = authViewModel
             )
         }
         
@@ -93,7 +103,9 @@ fun SkaiNavigation(
                 },
                 onNavigateToCart = {
                     navController.navigate("cart")
-                }
+                },
+                authViewModel = authViewModel,
+                cartViewModel = cartViewModel
             )
         }
         
@@ -104,7 +116,9 @@ fun SkaiNavigation(
                 },
                 onNavigateToCheckout = {
                     navController.navigate("checkout")
-                }
+                },
+                authViewModel = authViewModel,
+                cartViewModel = cartViewModel
             )
         }
         
@@ -117,7 +131,9 @@ fun SkaiNavigation(
                     navController.navigate("catalog") {
                         popUpTo("catalog") { inclusive = true }
                     }
-                }
+                },
+                authViewModel = authViewModel,
+                cartViewModel = cartViewModel
             )
         }
         
@@ -125,7 +141,8 @@ fun SkaiNavigation(
             OrderHistoryScreen(
                 onNavigateBack = {
                     navController.popBackStack()
-                }
+                },
+                authViewModel = authViewModel
             )
         }
         

@@ -1,10 +1,7 @@
 package com.example.skai.data.api
-
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
-
-
 data class ExternalProduct(
     val id: Int,
     val title: String,
@@ -14,12 +11,10 @@ data class ExternalProduct(
     val image: String,
     val rating: Rating
 )
-
 data class Rating(
     val rate: Double,
     val count: Int
 )
-
 interface ExternalProductApiService {
     
     @GET("products")

@@ -7,29 +7,33 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @Table(name = "products")
 data class Product(
     @Id
+    @Column(length = 36)
     var id: String? = null,
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     var name: String,
     
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column
     var description: String? = null,
     
     @Column(nullable = false)
     var price: Double,
     
+    @Column(length = 100)
     var category: String? = null,
     
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_sizes", joinColumns = [JoinColumn(name = "product_id")])
-    @Column(name = "size")
+    @Column(name = "product_size", length = 20)
     var sizes: List<String>? = null,
     
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_images", joinColumns = [JoinColumn(name = "product_id")])
-    @Column(name = "image_url")
+    @Column(name = "image_url", length = 1000)
     var images: List<String>? = null,
     
+    @Column
     var stock: Int? = null,
     
     @Column(name = "is_active")

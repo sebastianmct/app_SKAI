@@ -3,9 +3,9 @@ package com.example.skai.ui.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.skai.DataManager
 import com.example.skai.data.model.Order
 import com.example.skai.data.model.OrderStatus
+import com.example.skai.data.repository.OrderRepository
 import com.example.skai.utils.NotificationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +16,9 @@ import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
-class OrderViewModel @Inject constructor() : ViewModel() {
+class OrderViewModel @Inject constructor(
+    private val orderRepository: OrderRepository
+) : ViewModel() {
 
     private val _orders = MutableStateFlow<List<Order>>(emptyList())
     val orders: StateFlow<List<Order>> = _orders.asStateFlow()
@@ -31,9 +33,10 @@ class OrderViewModel @Inject constructor() : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                _orders.value = DataManager.getOrders(userId)
+                val ordersList = orderRepository.getOrdersByUserId(userId)
+                _orders.value = ordersList
             } catch (e: Exception) {
-
+                // Error handling
             } finally {
                 _isLoading.value = false
             }
@@ -73,15 +76,16 @@ class OrderViewModel @Inject constructor() : ViewModel() {
                     notes = notes
                 )
 
-                DataManager.createOrder(order)
-                _orderCreated.value = true
-                
-
-                context?.let {
-                    NotificationService.notifyOrderConfirmed(it, order.id)
+                val createdOrder = orderRepository.createOrder(order)
+                if (createdOrder != null) {
+                    _orderCreated.value = true
+                    
+                    context?.let {
+                        NotificationService.notifyOrderConfirmed(it, createdOrder.id ?: order.id)
+                    }
                 }
             } catch (e: Exception) {
-
+                // Error handling
             } finally {
                 _isLoading.value = false
             }
@@ -93,6 +97,6 @@ class OrderViewModel @Inject constructor() : ViewModel() {
     }
 
     suspend fun getOrderById(orderId: String): Order? {
-        return DataManager.getOrderById(orderId)
+        return orderRepository.getOrderById(orderId)
     }
 }

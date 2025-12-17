@@ -18,7 +18,7 @@ import javax.inject.Named
 object NetworkModule {
     
 
-    private const val BASE_URL = "http://10.0.2.2:8080/api/" // Cambiar según tu entorno
+    private const val BASE_URL = "http://10.0.2.2:8080/api/"
     private const val EXTERNAL_API_BASE_URL = "https://fakestoreapi.com/"
     
     @Provides

@@ -1,356 +1,299 @@
 # SKAI - E-commerce Mobile App
 
-Aplicación móvil de e-commerce desarrollada en Android con Kotlin, utilizando Jetpack Compose para la interfaz de usuario y arquitectura MVVM.
+Aplicación móvil de e-commerce desarrollada en Android con Kotlin, utilizando Jetpack Compose para la interfaz de usuario, arquitectura MVVM y backend Spring Boot conectado a **Oracle Cloud Infrastructure (OCI)**.
 
 ## Integrantes
 
 - **Sebastian Caamaño**
 - **Vicente Ordenes**
 
+## Arquitectura del Sistema
+
+```
+┌─────────────────┐     HTTP/REST      ┌─────────────────┐      JDBC       ┌─────────────────┐
+│   Android App   │ ◄──────────────► │  Spring Boot    │ ◄─────────────► │   Oracle DB     │
+│  (Kotlin/Compose)│                   │    Backend      │                  │     (OCI)       │
+└─────────────────┘                    └─────────────────┘                  └─────────────────┘
+```
+
+### Tecnología de Base de Datos
+
+**Oracle Cloud Infrastructure (OCI) - Autonomous Database**
+
+La aplicación utiliza una base de datos Oracle en la nube, NO almacenamiento local (Room/SQLite). Esto proporciona:
+
+- ✅ **Persistencia real en la nube**: Los datos se guardan en Oracle Autonomous Database
+- ✅ **Sincronización multi-dispositivo**: Cualquier dispositivo accede a los mismos datos
+- ✅ **Escalabilidad empresarial**: Base de datos Oracle de nivel producción
+- ✅ **Seguridad**: Conexión cifrada con Oracle Wallet
+
 ## Funcionalidades
 
 ### Funcionalidades Principales
-- **Autenticación de usuarios**: Login y registro de usuarios con validación
-- **Catálogo de productos**: Visualización, búsqueda y filtrado de productos
-- **Carrito de compras**: Gestión completa de productos en el carrito (agregar, actualizar cantidad, eliminar)
-- **Pedidos**: Creación y seguimiento de pedidos
-- **Notificaciones push locales**: Notificaciones para eventos importantes (nuevo producto, pedido confirmado)
+- **Autenticación de usuarios**: Login y registro con validación contra BD Oracle
+- **Catálogo de productos**: Productos almacenados en Oracle, con búsqueda y filtrado
+- **Carrito de compras**: Gestión completa persistida en la nube
+- **Pedidos**: Creación y seguimiento de pedidos en tiempo real
+- **Notificaciones push locales**: Eventos importantes (pedido confirmado, etc.)
 - **Integración con API externa**: Consumo de productos desde Fake Store API
-- **Panel de administración**: Gestión de productos para administradores (CRUD completo)
+- **Panel de administración**: CRUD completo de productos (solo admin)
 
 ### Funcionalidades de Hardware
-- **Notificaciones Push Locales**: 
-  - Notificación al agregar un nuevo producto
-  - Notificación al confirmar un pedido
-  - Solicitud automática de permisos (Android 13+)
+- **Cámara**: Captura de fotos para perfil/productos
+- **Galería**: Selección de imágenes del dispositivo
+- **Notificaciones Push Locales**: Alertas de pedidos y productos
 
-## Endpoints Utilizados
+## Backend - Spring Boot
 
-### API Externa - Fake Store API
-La aplicación consume productos de la API pública [Fake Store API](https://fakestoreapi.com/):
+El backend está desarrollado en **Kotlin con Spring Boot** y se conecta a Oracle OCI.
 
-**Base URL**: `https://fakestoreapi.com/`
+### Estructura del Backend
 
-**Endpoints utilizados**:
-- `GET /products` - Obtener todos los productos
-- `GET /products/{id}` - Obtener un producto por ID
-- `GET /products/category/{category}` - Obtener productos por categoría
-- `GET /products/categories` - Obtener todas las categorías
-
-**Conversión de datos**:
-- Los productos externos se convierten automáticamente al modelo interno de la aplicación
-- Conversión de precios: USD a CLP (1 USD ≈ 1000 CLP)
-- Mapeo de categorías externas a categorías internas
-
-### Microservicios Propios
-La aplicación utiliza un sistema de gestión de datos local implementado con `DataManager` que simula los microservicios:
-
-**Base URL**: `https://api.example.com/api/` 
-
-**Endpoints simulados**:
-- `GET /products` - Obtener productos locales
-- `POST /products` - Crear nuevo producto
-- `PUT /products/{id}` - Actualizar producto
-- `DELETE /products/{id}` - Eliminar producto
-- `GET /users/login` - Autenticación de usuarios
-- `POST /users/register` - Registro de usuarios
-- `GET /orders` - Obtener pedidos del usuario
-- `POST /orders` - Crear nuevo pedido
-- `GET /cart` - Obtener items del carrito
-- `POST /cart` - Agregar item al carrito
-- `PUT /cart/{id}` - Actualizar item del carrito
-- `DELETE /cart/{id}` - Eliminar item del carrito
-
-**Nota**: Los microservicios están implementados localmente usando `DataManager` y `Room Database` para persistencia. La estructura está preparada para migrar a servicios REST reales.
-
-
-#### **Flujo Completo en tu Aplicación**
-
-```43:57:app/src/main/java/com/example/skai/data/repository/ProductRepository.kt
-    suspend fun getProductById(productId: String): Product? {
-        
-        return try {
-            val response = productApiService.getProductById(productId)
-            if (response.isSuccessful) {
-                val product = response.body()
-                product?.let { productDao.insertProduct(it) }
-                product
-            } else {
-                productDao.getProductById(productId)
-            }
-        } catch (e: Exception) {
-            productDao.getProductById(productId)
-        }
-    }
+```
+skai-backend/
+├── src/main/kotlin/com/example/skai/
+│   ├── config/
+│   │   ├── CorsConfig.kt          # Configuración CORS
+│   │   └── DataInitializer.kt     # Datos iniciales (usuarios/productos)
+│   ├── controller/
+│   │   ├── CartController.kt      # API del carrito
+│   │   ├── OrderController.kt     # API de pedidos
+│   │   ├── ProductController.kt   # API de productos
+│   │   └── UserController.kt      # API de usuarios
+│   ├── model/
+│   │   ├── CartItem.kt
+│   │   ├── Order.kt
+│   │   ├── Product.kt
+│   │   └── User.kt
+│   ├── repository/                # JPA Repositories (Oracle)
+│   ├── service/                   # Lógica de negocio
+│   └── SkaiApplication.kt
+└── src/main/resources/
+    ├── application.properties     # Configuración Oracle
+    └── Wallet_*/                  # Oracle Wallet (credenciales)
 ```
 
-**Proceso**:
-1. Se llama a `getProductById("123")` desde el ViewModel
-2. Retrofit construye la URL: `https://api.example.com/api/products/123`
-3. Se hace la petición HTTP GET al servidor
-4. Si es exitosa, se guarda en la base de datos local (caché)
-5. Si falla, se busca en la base de datos local como respaldo
+### Conexión a Oracle OCI
 
-#### 5. **Diferencia con Query Parameters**
-
-- **Path Parameter** (`/products/{id}`): El ID es parte de la ruta
-  - Ejemplo: `GET /products/123`
-  - Se usa para identificar un recurso específico
-  
-- **Query Parameter** (`/products?category=electronics`): El parámetro va después de `?`
-  - Ejemplo: `GET /products?category=electronics`
-  - Se usa para filtros, búsquedas, paginación
-
-En tu código también tienes un ejemplo de query parameter:
-
-```15:16:app/src/main/java/com/example/skai/data/api/ProductApiService.kt
-    @GET("products")
-    suspend fun getProductsByCategory(@Query("category") category: String): Response<List<Product>>
+```properties
+# application.properties
+spring.datasource.url=jdbc:oracle:thin:@skai_high?TNS_ADMIN=src/main/resources/Wallet_SKAI
+spring.datasource.username=ADMIN
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.database-platform=org.hibernate.dialect.OracleDialect
 ```
 
-Este genera: `GET /products?category=electronics`
+## Endpoints REST (Backend Real)
+
+**Base URL**: `http://10.0.2.2:8080/api/` (emulador) o `http://<IP>:8080/api/`
+
+### Usuarios
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| POST | `/users/login` | Autenticación |
+| POST | `/users/register` | Registro |
+| PUT | `/users/{id}` | Actualizar usuario |
+
+### Productos
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/products` | Listar todos |
+| GET | `/products/{id}` | Obtener por ID |
+| GET | `/products?category=X` | Filtrar por categoría |
+| POST | `/products` | Crear producto |
+| PUT | `/products/{id}` | Actualizar |
+| DELETE | `/products/{id}` | Eliminar |
+
+### Carrito
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/cart/{userId}` | Obtener carrito |
+| POST | `/cart` | Agregar item |
+| PUT | `/cart/{id}` | Actualizar cantidad |
+| DELETE | `/cart/{id}` | Eliminar item |
+
+### Pedidos
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| GET | `/orders/user/{userId}` | Pedidos del usuario |
+| POST | `/orders` | Crear pedido |
+| PUT | `/orders/{id}/status` | Actualizar estado |
 
 ## Tecnologías Utilizadas
 
-### Arquitectura y Patrones
-- **MVVM (Model-View-ViewModel)**: Arquitectura de la aplicación
-- **Dependency Injection**: Dagger Hilt
-- **Coroutines**: Para operaciones asíncronas
-- **StateFlow**: Para manejo de estado reactivo
+### App Android
+| Tecnología | Uso |
+|------------|-----|
+| Kotlin | Lenguaje principal |
+| Jetpack Compose | UI declarativa |
+| Material Design 3 | Sistema de diseño |
+| Hilt | Inyección de dependencias |
+| Retrofit + OkHttp | Cliente HTTP |
+| Coroutines + StateFlow | Asincronía y estado reactivo |
+| Coil | Carga de imágenes |
+| Accompanist | Permisos de cámara |
 
-### UI
-- **Jetpack Compose**: Framework de UI declarativa
-- **Material Design 3**: Sistema de diseño moderno
+### Backend
+| Tecnología | Uso |
+|------------|-----|
+| Spring Boot 3 | Framework backend |
+| Kotlin | Lenguaje |
+| Spring Data JPA | ORM |
+| Oracle JDBC | Driver de BD |
+| Oracle Wallet | Autenticación segura |
 
-### Persistencia
-- **Room Database**: Base de datos local
-- **DataStore**: Almacenamiento de preferencias
-
-### Networking
-- **Retrofit**: Cliente HTTP para APIs REST
-- **OkHttp**: Cliente HTTP con interceptores
-- **Gson**: Serialización JSON
+### Base de Datos
+| Tecnología | Uso |
+|------------|-----|
+| Oracle Autonomous DB | Base de datos en OCI |
+| JPA/Hibernate | Mapeo objeto-relacional |
 
 ### Testing
-- **JUnit**: Framework de testing
-- **Kotest**: Framework de testing funcional
-- **MockK**: Mocking para Kotlin
-- **Coroutines Test**: Testing de coroutines
-
-### Notificaciones
-- **NotificationCompat**: Notificaciones locales
-- **NotificationChannel**: Canales de notificaciones
+| Tecnología | Uso |
+|------------|-----|
+| JUnit 5 | Framework base |
+| Kotest | Tests en estilo BDD |
+| MockK | Mocking para Kotlin |
+| Coroutines Test | Testing asíncrono |
 
 ## Requisitos
 
-- Android Studio Hedgehog | 2023.1.1 o superior
-- JDK 17 o superior
+### App Android
+- Android Studio Hedgehog 2023.1.1+
+- JDK 17+
 - Android SDK 24 (mínimo) - 34 (target)
-- Gradle 8.0+
-- Conexión a Internet (para consumir API externa)
+
+### Backend
+- JDK 17+
+- Gradle 8+
+- Cuenta Oracle Cloud (OCI)
+- Oracle Wallet configurado
 
 ## Pasos para Ejecutar
 
-### 1. Clonar el Repositorio
+### 1. Configurar y Ejecutar el Backend
+
 ```bash
-git clone <url-del-repositorio>
-cd app_SKAI-main
+cd skai-backend
+
+# Asegúrate de tener el Wallet de Oracle en src/main/resources/
+# Configura las credenciales en application.properties
+
+# Ejecutar
+./gradlew bootRun
 ```
 
-### 2. Abrir el Proyecto
-1. Abre Android Studio
-2. Selecciona "Open an Existing Project"
-3. Navega a la carpeta `app_SKAI-main` y selecciona el proyecto
+El backend iniciará en `http://localhost:8080` y:
+- Creará las tablas automáticamente en Oracle
+- Insertará usuarios y productos iniciales
 
-### 3. Sincronizar Dependencias
-1. Android Studio debería sincronizar automáticamente las dependencias de Gradle
-2. Si no, ve a `File > Sync Project with Gradle Files`
-3. Espera a que termine la sincronización
+### 2. Ejecutar la App Android
 
-### 4. Configurar el Emulador o Dispositivo
-**Opción A - Emulador**:
-1. Ve a `Tools > Device Manager`
-2. Crea un nuevo dispositivo virtual (AVD) con Android 7.0 (API 24) o superior
-3. Inicia el emulador
+```bash
+cd app_SKAI
 
-**Opción B - Dispositivo Físico**:
-1. Habilita las opciones de desarrollador en tu dispositivo Android
-2. Activa la depuración USB
-3. Conecta el dispositivo por USB
+# Abrir en Android Studio y ejecutar en emulador/dispositivo
+```
 
-### 5. Ejecutar la Aplicación
-1. Selecciona el dispositivo/emulador en la barra de herramientas
-2. Haz clic en el botón "Run" (▶️) o presiona `Shift + F10`
-3. La aplicación se compilará e instalará automáticamente
+**Nota**: El emulador usa `10.0.2.2` para conectar a localhost del host.
 
-### 6. Probar la Aplicación
-- **Usuario Administrador**: 
-  - Email: `admin@skai.com`
-  - Password: `admin123`
-  
-- **Usuario Cliente**: 
-  - Email: `cliente@skai.com`
-  - Password: `cliente123`
+### 3. Probar la Aplicación
 
+**Usuario Administrador**:
+- Email: `admin@skai.com`
+- Password: `admin123`
 
-## Estructura del Proyecto
+**Usuario Cliente**:
+- Email: `cliente@skai.com`
+- Password: `cliente123`
+
+## Estructura del Proyecto Android
 
 ```
-app_SKAI-main/
-├── app/
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/example/skai/
-│   │   │   │   ├── data/
-│   │   │   │   │   ├── api/          # Interfaces de API (Retrofit)
-│   │   │   │   │   ├── database/     # Room Database (DAOs, Entities)
-│   │   │   │   │   ├── model/        # Modelos de datos
-│   │   │   │   │   └── repository/   # Repositorios
-│   │   │   │   ├── di/               # Módulos de Dagger Hilt
-│   │   │   │   ├── ui/
-│   │   │   │   │   ├── screens/      # Pantallas de Compose
-│   │   │   │   │   └── viewmodel/    # ViewModels
-│   │   │   │   ├── utils/            # Utilidades (NotificationService, CurrencyConverter)
-│   │   │   │   └── MainActivity.kt
-│   │   │   └── res/                  # Recursos (layouts, drawables, etc.)
-│   │   └── test/                     # Tests unitarios
-│   ├── skai-release.jks              # Keystore para firma (NO subir a Git)
-│   ├── keystore.properties           # Credenciales del keystore (NO subir a Git)
-│   ├── generate-keystore.bat         # Script para generar keystore (Windows)
-│   ├── generate-keystore.sh          # Script para generar keystore (Linux/Mac)
-│   └── build.gradle.kts
-└── README.md
+app/src/main/java/com/example/skai/
+├── data/
+│   ├── api/              # Interfaces Retrofit
+│   │   ├── ProductApiService.kt
+│   │   ├── UserApiService.kt
+│   │   ├── CartApiService.kt
+│   │   └── OrderApiService.kt
+│   ├── model/            # Entidades
+│   │   ├── Product.kt
+│   │   ├── User.kt
+│   │   ├── CartItem.kt
+│   │   └── Order.kt
+│   └── repository/       # Repositorios (acceso a API)
+├── di/
+│   └── NetworkModule.kt  # Configuración Retrofit/Hilt
+├── ui/
+│   ├── screens/          # Pantallas Compose
+│   │   ├── auth/         # Login, Register
+│   │   ├── catalog/      # Catálogo
+│   │   ├── product/      # Detalle producto
+│   │   ├── cart/         # Carrito
+│   │   ├── orders/       # Historial
+│   │   ├── profile/      # Perfil
+│   │   └── admin/        # Panel admin
+│   ├── viewmodel/        # ViewModels
+│   ├── components/       # Componentes reutilizables
+│   └── navigation/       # Navegación
+└── utils/                # Utilidades
 ```
 
 ## Testing
-
-El proyecto incluye una suite completa de tests unitarios que cubren más del 80% del código lógico:
 
 ```bash
 # Ejecutar todos los tests
 ./gradlew test
 
-# Ejecutar tests específicos
-./gradlew test --tests "com.example.skai.*"
+# Tests específicos
+./gradlew test --tests "AuthViewModelTest"
+./gradlew test --tests "ProductViewModelTest"
 ```
 
-### Cobertura de Tests
+### Tests Incluidos
+- `AuthViewModelTest` - Login, registro, logout
+- `ProductViewModelTest` - CRUD productos
+- `CartViewModelTest` - Gestión carrito
+- `OrderViewModelTest` - Creación pedidos
+- `ExternalProductRepositoryTest` - API externa
 
-- **DataManager**: Tests de gestión de datos (15 tests)
-- **AuthViewModel**: Tests de autenticación (6 tests)
-- **ProductViewModel**: Tests de gestión de productos (8 tests)
-- **CartViewModel**: Tests de carrito de compras (6 tests)
-- **OrderViewModel**: Tests de pedidos (5 tests)
-- **ExternalProductRepository**: Tests de API externa (3 tests)
-- **CurrencyConverter**: Tests de utilidades (3 tests)
+## Datos Iniciales
 
-**Total**: 50+ tests unitarios
+Al iniciar el backend, se crean automáticamente:
 
-## Configuración
+### Usuarios
+| Email | Password | Rol |
+|-------|----------|-----|
+| admin@skai.com | admin123 | Administrador |
+| cliente@skai.com | cliente123 | Cliente |
 
-### Permisos
+### Productos
+| Nombre | Categoría | Precio |
+|--------|-----------|--------|
+| Camisa Casual Azul | Camisas | $29.990 |
+| Pantalón Jeans Clásico | Pantalones | $49.990 |
+| Vestido Elegante Negro | Vestidos | $79.990 |
+| Zapatos Deportivos Blancos | Zapatos | $89.990 |
+| Cinturón de Cuero Marrón | Accesorios | $24.990 |
+| Chaqueta de Cuero Negra | Chaquetas | $129.990 |
 
-La aplicación requiere los siguientes permisos (definidos en `AndroidManifest.xml`):
-- `POST_NOTIFICATIONS`: Para mostrar notificaciones (Android 13+)
-- `VIBRATE`: Para vibración en notificaciones
+## Diferencias con Almacenamiento Local
 
-### Variables de Configuración
-
-Las URLs de las APIs están configuradas en `NetworkModule.kt`:
-- **API Externa**: `https://fakestoreapi.com/`
-- **API Interna**: `https://api.example.com/api/` (configurado pero usando DataManager local)
-
-## Dependencias Principales
-
-```kotlin
-// UI
-implementation("androidx.compose.ui:ui:1.5.4")
-implementation("androidx.compose.material3:material3:1.1.2")
-
-// Arquitectura
-implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-
-// Dependency Injection
-implementation("com.google.dagger:hilt-android:2.48")
-kapt("com.google.dagger:hilt-compiler:2.48")
-
-// Networking
-implementation("com.squareup.retrofit2:retrofit:2.9.0")
-implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-
-// Database
-implementation("androidx.room:room-runtime:2.6.1")
-implementation("androidx.room:room-ktx:2.6.1")
-
-// Testing
-testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
-testImplementation("io.mockk:mockk:1.13.8")
-testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-```
-
-## Funcionalidades Implementadas
-
-### App Móvil Completa
-✅ Todas las pantallas, formularios y flujos funcionales completos
-✅ Sin errores de navegación o ejecución
-✅ Interfaz de usuario completa con Jetpack Compose
-✅ Navegación fluida entre pantallas
-
-### Microservicios
-✅ Lógica de negocio implementada con DataManager
-✅ Base de datos configurada con Room
-✅ Endpoints funcionales (simulados localmente con estructura preparada para REST)
-✅ Gestión completa de usuarios, productos, carrito y pedidos
-
-### Integración con Microservicios
-✅ Integración completa con flujos CRUD
-✅ Envío, recepción y actualización de datos
-✅ Sincronización de datos entre UI y lógica de negocio
-✅ Manejo de estado reactivo con StateFlow
-
-### API Externa
-✅ Consumo de Fake Store API
-✅ Integración visual sin interferir con microservicios propios
-✅ Conversión automática de datos externos al modelo interno
-✅ Combinación de productos locales y externos en el catálogo
-
-### Pruebas Unitarias
-✅ Suite completa de tests unitarios (50+ tests)
-✅ Cobertura del 80%+ del código lógico
-✅ Tests funcionales con herramientas adecuadas (Kotest, MockK, Coroutines Test)
-✅ Tests con contexto de negocio claro
-
-## Funcionalidades de Hardware
-
-- **Notificaciones Push Locales**: 
-  - Notificación al agregar un nuevo producto
-  - Notificación al confirmar un pedido
-  - Solicitud automática de permisos (Android 13+)
-  - Canales de notificación configurados
-
-## Usuarios de Prueba
-
-### Administrador
-- Email: `admin@skai.com`
-- Password: `admin123`
-- Permisos: Acceso completo al panel de administración, gestión de productos
-
-### Cliente
-- Email: `cliente@skai.com`
-- Password: `cliente123`
-- Permisos: Navegación, compras, gestión de carrito y pedidos
+| Aspecto | Room (Local) | Oracle OCI (Nube) |
+|---------|--------------|-------------------|
+| Persistencia | Solo en dispositivo | En la nube |
+| Sincronización | No | Multi-dispositivo |
+| Escalabilidad | Limitada | Empresarial |
+| Backup | Manual | Automático |
+| Acceso | Offline | Requiere conexión |
 
 ## Autores
 
 - **Sebastian Caamaño**
 - **Vicente Ordenes**
 
-## Soporte
-
-Para reportar problemas o sugerencias, por favor abre un issue en el repositorio.
-
 ---
 
-**Nota**: Esta aplicación fue desarrollada como proyecto académico y utiliza una API externa pública (Fake Store API) para demostración de integración. Los microservicios están implementados localmente usando DataManager y Room Database, con estructura preparada para migración a servicios REST reales.
-
+**Nota**: Esta aplicación utiliza Oracle Cloud Infrastructure para la base de datos, proporcionando una arquitectura cliente-servidor real en lugar de almacenamiento local.

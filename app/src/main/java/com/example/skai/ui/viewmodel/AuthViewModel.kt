@@ -2,8 +2,8 @@ package com.example.skai.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.skai.DataManager
 import com.example.skai.data.model.User
+import com.example.skai.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +12,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class AuthViewModel @Inject constructor() : ViewModel() {
+class AuthViewModel @Inject constructor(
+    private val userRepository: UserRepository
+) : ViewModel() {
 
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
@@ -23,19 +25,14 @@ class AuthViewModel @Inject constructor() : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    init {
-        _currentUser.value = DataManager.currentUser
-    }
-
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
             
             try {
-                val user = DataManager.login(email, password)
+                val user = userRepository.login(email, password)
                 if (user != null) {
-                    DataManager.setCurrentUser(user)
                     _currentUser.value = user
                 } else {
                     _errorMessage.value = "Credenciales inválidas"
@@ -54,12 +51,11 @@ class AuthViewModel @Inject constructor() : ViewModel() {
             _errorMessage.value = null
             
             try {
-                val success = DataManager.register(user)
-                if (success) {
-                    DataManager.setCurrentUser(user)
-                    _currentUser.value = user
+                val registeredUser = userRepository.register(user)
+                if (registeredUser != null) {
+                    _currentUser.value = registeredUser
                 } else {
-                    _errorMessage.value = "El email ya está registrado"
+                    _errorMessage.value = "El email ya está registrado o hubo un error"
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Error al registrarse: ${e.message}"
@@ -70,7 +66,6 @@ class AuthViewModel @Inject constructor() : ViewModel() {
     }
 
     fun logout() {
-        DataManager.setCurrentUser(null)
         _currentUser.value = null
     }
 
@@ -84,11 +79,10 @@ class AuthViewModel @Inject constructor() : ViewModel() {
             _errorMessage.value = null
             
             try {
-                val success = DataManager.updateUser(user)
-                if (success) {
+                val updatedUser = userRepository.updateUser(user)
+                if (updatedUser != null) {
                     if (user.id == _currentUser.value?.id) {
-                        DataManager.setCurrentUser(user)
-                        _currentUser.value = user
+                        _currentUser.value = updatedUser
                     }
                 } else {
                     _errorMessage.value = "Error al actualizar el usuario"
@@ -99,5 +93,10 @@ class AuthViewModel @Inject constructor() : ViewModel() {
                 _isLoading.value = false
             }
         }
+    }
+
+    // Permite establecer el usuario actual manualmente (por ejemplo al iniciar la app)
+    fun setCurrentUser(user: User?) {
+        _currentUser.value = user
     }
 }

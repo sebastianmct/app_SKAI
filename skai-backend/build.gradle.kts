@@ -12,7 +12,8 @@ group = "com.example"
 version = "1.0.0"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
+    // Ajustado para coincidir con la versiï¿½n de Java con la que estï¿½s ejecutando
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
 repositories {
@@ -26,8 +27,8 @@ dependencies {
     // Spring Boot Data JPA (solo para User, Order, Cart)
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     
-    // H2 Database (in-memory)
-    runtimeOnly("com.h2database:h2")
+    // Driver JDBC de Oracle actualizado. Este ï¿½nico artefacto incluye las dependencias de seguridad necesarias.
+    implementation("com.oracle.database.jdbc:ojdbc11:23.4.0.24.05")
     
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -47,11 +48,11 @@ dependencies {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         freeCompilerArgs += "-Xjsr305=strict"
-        jvmTarget = "17"
+        // Ajustado para coincidir con la versiï¿½n de Java con la que estï¿½s ejecutando
+        jvmTarget = "21"
     }
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
 }
-

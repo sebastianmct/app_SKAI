@@ -16,13 +16,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.skai.ui.navigation.SkaiNavigation
+import com.example.skai.ui.viewmodel.AuthViewModel
+import com.example.skai.ui.viewmodel.CartViewModel
 
 @Composable
 fun SkaiApp(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     var isInitialized by remember { mutableStateOf(false) }
     
+    // ViewModels compartidos a nivel de app
+    val authViewModel: AuthViewModel = hiltViewModel()
+    val cartViewModel: CartViewModel = hiltViewModel()
 
     LaunchedEffect(Unit) {
         if (!isInitialized) {
@@ -36,9 +42,12 @@ fun SkaiApp(modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.background
     ) {
         if (isInitialized) {
-            SkaiNavigation(navController = navController)
+            SkaiNavigation(
+                navController = navController,
+                authViewModel = authViewModel,
+                cartViewModel = cartViewModel
+            )
         } else {
-
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center

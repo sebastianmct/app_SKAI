@@ -2,81 +2,61 @@ package com.example.skai.controller
 
 import com.example.skai.model.CartItem
 import com.example.skai.service.CartService
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/cart")
-class CartController(
-    private val cartService: CartService
-) {
-    
-    @GetMapping("/user/{userId}")
-    fun getCartItemsByUserId(@PathVariable userId: String): ResponseEntity<List<CartItem>> {
-        return ResponseEntity.ok(cartService.getCartItemsByUserId(userId))
+class CartController(private val cartService: CartService) {
+
+    @GetMapping("/{userId}")
+    fun getCartItems(@PathVariable userId: String): ResponseEntity<List<CartItem>> {
+        val items = cartService.getCartItems(userId)
+        return ResponseEntity.ok(items)
     }
-    
-    @PostMapping
-    fun addToCart(@RequestBody cartItem: CartItem): ResponseEntity<CartItem> {
-        val createdItem = cartService.addToCart(cartItem)
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdItem)
+
+    @PostMapping("/add")
+    fun addToCart(@RequestBody request: AddToCartRequest): ResponseEntity<CartItem> {
+        val newItem = cartService.addToCart(
+            userId = request.userId, 
+            productId = request.productId, 
+            size = request.size, 
+            quantity = request.quantity,
+            productName = request.productName,
+            productPrice = request.productPrice,
+            productImage = request.productImage
+        )
+        return ResponseEntity.ok(newItem)
     }
-    
-    @PutMapping("/{userId}/{productId}/{size}")
-    fun updateCartItemQuantity(
-        @PathVariable userId: String,
-        @PathVariable productId: String,
-        @PathVariable size: String,
-        @RequestBody quantityRequest: Map<String, Int>
-    ): ResponseEntity<Any> {
-        return try {
-            val quantity = quantityRequest["quantity"] ?: throw IllegalArgumentException("Quantity is required")
-            val updatedItem = cartService.updateCartItemQuantity(userId, productId, size, quantity)
-            ResponseEntity.ok(updatedItem)
-        } catch (e: RuntimeException) {
-            ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(mapOf<String, String>("error" to (e.message ?: "Cart item not found")))
-        } catch (e: IllegalArgumentException) {
-            ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(mapOf<String, String>("error" to (e.message ?: "Invalid request")))
-        }
+
+    @PutMapping("/update")
+    fun updateQuantity(@RequestBody request: UpdateQuantityRequest): ResponseEntity<CartItem?> {
+        val updatedItem = cartService.updateQuantity(request.userId, request.productId, request.size, request.quantity)
+        return ResponseEntity.ok(updatedItem)
     }
-    
-    @DeleteMapping("/{userId}/{productId}/{size}")
-    fun removeFromCart(
-        @PathVariable userId: String,
-        @PathVariable productId: String,
-        @PathVariable size: String
-    ): ResponseEntity<Any> {
-        return try {
-            cartService.removeFromCart(userId, productId, size)
-            ResponseEntity.ok().build()
-        } catch (e: RuntimeException) {
-            ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(mapOf<String, String>("error" to (e.message ?: "Cart item not found")))
-        }
+
+    @DeleteMapping("/remove")
+    fun removeFromCart(@RequestBody request: RemoveFromCartRequest): ResponseEntity<Unit> {
+        cartService.removeFromCart(request.userId, request.productId, request.size)
+        return ResponseEntity.ok().build()
     }
-    
-    @DeleteMapping("/user/{userId}")
-    fun clearCart(@PathVariable userId: String): ResponseEntity<Any> {
+
+    @DeleteMapping("/clear/{userId}")
+    fun clearCart(@PathVariable userId: String): ResponseEntity<Unit> {
         cartService.clearCart(userId)
         return ResponseEntity.ok().build()
     }
-    
-    @GetMapping("/{userId}/{productId}/{size}")
-    fun getCartItem(
-        @PathVariable userId: String,
-        @PathVariable productId: String,
-        @PathVariable size: String
-    ): ResponseEntity<Any> {
-        return try {
-            val cartItem = cartService.getCartItem(userId, productId, size)
-            ResponseEntity.ok(cartItem)
-        } catch (e: RuntimeException) {
-            ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(mapOf<String, String>("error" to (e.message ?: "Cart item not found")))
-        }
-    }
 }
 
+// Clases de solicitud para un mapeo de JSON más limpio
+data class AddToCartRequest(
+    val userId: String, 
+    val productId: String, 
+    val size: String, 
+    val quantity: Int,
+    val productName: String? = null,
+    val productPrice: Double? = null,
+    val productImage: String? = null
+)
+data class UpdateQuantityRequest(val userId: String, val productId: String, val size: String, val quantity: Int)
+data class RemoveFromCartRequest(val userId: String, val productId: String, val size: String)

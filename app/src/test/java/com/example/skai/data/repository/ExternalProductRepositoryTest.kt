@@ -26,7 +26,6 @@ class ExternalProductRepositoryTest : StringSpec({
     }
 
 
-
     "Cuando la API externa falla, debe retornar una lista vacía" {
         runTest {
 

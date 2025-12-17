@@ -71,5 +71,11 @@ class UserController(
                 .body(mapOf<String, String>("error" to (e.message ?: "User not found")))
         }
     }
+    
+    @GetMapping
+    fun getAllUsers(): ResponseEntity<List<User>> {
+        val users = userService.getAllUsers()
+        return ResponseEntity.ok(users)
+    }
 }
 

@@ -272,7 +272,6 @@ fun CatalogScreen(
                         onAddToCart = { size ->
                             currentUser?.let { user ->
                                 val cartItem = com.example.skai.data.model.CartItem(
-                                    id = UUID.randomUUID().toString(),
                                     userId = user.id,
                                     productId = product.id,
                                     productName = product.name,
@@ -301,7 +300,7 @@ fun ProductCard(
 ) {
     var showSizeSelector by remember { mutableStateOf(false) }
     var selectedSize by remember { mutableStateOf("") }
-    
+
 
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(

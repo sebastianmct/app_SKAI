@@ -8,6 +8,7 @@ plugins {
     id("kotlin-kapt")
     id("dagger.hilt.android.plugin")
     id("kotlin-parcelize")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -92,9 +93,6 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     kapt("com.google.dagger:hilt-compiler:2.51.1")
 
-    implementation("androidx.room:room-runtime:2.8.4")
-    implementation("androidx.room:room-ktx:2.8.4")
-    kapt("androidx.room:room-compiler:2.8.4")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
 
@@ -129,4 +127,10 @@ dependencies {
 
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(kotlin("test"))
+
+
+}
+
+kapt {
+    correctErrorTypes = true
 }

@@ -80,7 +80,7 @@ class ExternalProductRepository @Inject constructor(
             id = "external_${id}",
             name = title,
             description = description,
-            price = price * 1000,
+            price = price * 100,
             category = skaiCategory,
             sizes = listOf("S", "M", "L", "XL"),
             images = listOf(image),

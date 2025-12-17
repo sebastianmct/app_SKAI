@@ -11,7 +11,17 @@ import org.springframework.web.bind.annotation.*
 class ProductController(
     private val productService: ProductService
 ) {
-    
+
+    @GetMapping("/{id}")
+    fun getProductById(@PathVariable id: String): ResponseEntity<Any> {
+        return try {
+            val product = productService.getProductById(id)
+            ResponseEntity.ok(product)
+        } catch (e: RuntimeException) {
+            ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(mapOf<String, String>("error" to (e.message ?: "Producto no encontrado")))
+        }
+    }
     @GetMapping
     fun getAllProducts(@RequestParam(required = false) category: String?): ResponseEntity<List<Product>> {
         return if (category != null && category.isNotEmpty()) {
@@ -21,16 +31,7 @@ class ProductController(
         }
     }
     
-    @GetMapping("/{id}")
-    fun getProductById(@PathVariable id: String): ResponseEntity<Any> {
-        return try {
-            val product = productService.getProductById(id)
-            ResponseEntity.ok(product)
-        } catch (e: RuntimeException) {
-            ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(mapOf<String, String>("error" to (e.message ?: "Product not found")))
-        }
-    }
+
     
     @PostMapping
     fun createProduct(@RequestBody product: Product): ResponseEntity<Product> {
@@ -45,7 +46,7 @@ class ProductController(
             ResponseEntity.ok(updatedProduct)
         } catch (e: RuntimeException) {
             ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(mapOf<String, String>("error" to (e.message ?: "Product not found")))
+                .body(mapOf<String, String>("error" to (e.message ?: "Producto no encontrado")))
         }
     }
     
@@ -56,7 +57,7 @@ class ProductController(
             ResponseEntity.ok().build()
         } catch (e: RuntimeException) {
             ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(mapOf<String, String>("error" to (e.message ?: "Product not found")))
+                .body(mapOf<String, String>("error" to (e.message ?: "Producto no encontrado")))
         }
     }
 }

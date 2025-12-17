@@ -39,6 +39,11 @@ object DataManager {
             )
         ))
 
+        // Si hay usuarios, establecer por defecto el usuario cliente (no admin)
+        if (users.isNotEmpty()) {
+            currentUser = users.find { !it.isAdmin } ?: users.first()
+        }
+
 
         products.addAll(listOf(
             Product(

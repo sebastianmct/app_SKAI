@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
@@ -29,14 +28,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.example.skai.DataManager
 import com.example.skai.R
 import com.example.skai.data.model.CartItem
 import com.example.skai.data.model.Product
 import com.example.skai.ui.viewmodel.AuthViewModel
 import com.example.skai.ui.viewmodel.CartViewModel
 import com.example.skai.ui.viewmodel.ProductViewModel
-import java.util.UUID
 
 fun formatPrice(price: Double): String {
     val priceClp = price * 1000
@@ -261,7 +258,6 @@ fun ProductDetailScreen(
                             onClick = {
                                 currentUser?.let { user ->
                                     val cartItem = CartItem(
-                                        id = UUID.randomUUID().toString(),
                                         userId = user.id,
                                         productId = productData.id,
                                         productName = productData.name,
